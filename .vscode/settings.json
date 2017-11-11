@@ -1,0 +1,6 @@
+{
+	"javascript.format.enable": false,
+	"editor.formatOnSave": true,
+	"prettier.trailingComma": "es5",
+	"prettier.useTabs": true
+}
