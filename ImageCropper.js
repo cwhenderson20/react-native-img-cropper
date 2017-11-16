@@ -1,19 +1,18 @@
-const React = require("react");
-const ReactNative = require("react-native");
-const {
+import * as React from "react";
+import ImageResizer from "react-native-image-resizer";
+import {
 	Animated,
 	CameraRoll,
 	Easing,
 	Image,
 	ImageEditor,
 	ImageStore,
-	NativeModules,
 	ScrollView,
 	StyleSheet,
 	Text,
 	TouchableHighlight,
 	View,
-} = ReactNative;
+} from "react-native";
 
 const PAGE_SIZE = 20;
 
@@ -83,18 +82,17 @@ class SquareImageCropper extends React.Component {
 						}
 
 						this.setState({
-							measuredSize: { width: measuredWidth, height: measuredWidth },
+							measuredSize: {
+								width: measuredWidth,
+								height: measuredWidth,
+							},
 						});
 					}}
 				/>
 			);
 		}
 
-		if (!this.state.croppedImageURI) {
-			return this.renderImageCropper();
-		}
-
-		return this.renderCroppedImage();
+		return this.renderImageCropper();
 	}
 
 	renderImageCropper() {
@@ -110,7 +108,6 @@ class SquareImageCropper extends React.Component {
 
 		return (
 			<View style={styles.container}>
-				<Text>Drag the image within the square to crop:</Text>
 				<ImageCropper
 					ref={imageCropper => (this.imageCropper = imageCropper)}
 					image={this.state.randomPhoto}
@@ -118,55 +115,44 @@ class SquareImageCropper extends React.Component {
 					style={[styles.imageCropper, this.state.measuredSize]}
 					onTransformDataChange={data => (this.transformData = data)}
 				/>
-				<TouchableHighlight
-					style={styles.cropButtonTouchable}
-					onPress={this.crop}
-				>
-					<View style={styles.cropButton}>
-						<Text style={styles.cropButtonLabel}>Crop</Text>
-					</View>
-				</TouchableHighlight>
-				{error}
-			</View>
-		);
-	}
-
-	renderCroppedImage() {
-		console.log(this.transformData);
-
-		return (
-			<View style={styles.container}>
-				<Text>Here is the cropped image:</Text>
-				<Image
-					source={{ uri: this.state.croppedImageURI }}
-					style={[styles.imageCropper, this.state.measuredSize]}
-				/>
-				<TouchableHighlight
-					style={styles.cropButtonTouchable}
-					onPress={this.reset}
-				>
-					<View style={styles.cropButton}>
-						<Text style={styles.cropButtonLabel}>Try again</Text>
-					</View>
-				</TouchableHighlight>
 			</View>
 		);
 	}
 
 	crop = () => {
+		if (!this.state.randomPhoto) {
+			return;
+		}
+
 		ImageEditor.cropImage(
 			this.state.randomPhoto.uri,
 			this.transformData,
 			croppedImageURI => {
-				console.log(NativeModules);
-				this.setState({ croppedImageURI });
-				this.props.onCropImage && this.props.onCropImage(null, croppedImageURI);
+				ImageResizer.createResizedImage(
+					croppedImageURI,
+					this.transformData.size.width,
+					this.transformData.size.height,
+					"PNG",
+					100,
+					this.transformData.rotation
+				).then(result => {
+					this.setState({ croppedImageURI: result.uri });
+					this.props.onCropImage && this.props.onCropImage(null, result.uri);
+					ImageStore.removeImageForTag(croppedImageURI);
+				});
 			},
 			cropError => {
 				this.setState({ cropError });
 				this.props.onCropImage && this.props.onCropImage(cropError);
 			}
 		);
+	};
+
+	rotate = () => {
+		if (!this.imageCropper) {
+			return;
+		}
+		this.imageCropper.rotateImage();
 	};
 
 	reset = () => {
@@ -180,10 +166,6 @@ class SquareImageCropper extends React.Component {
 		this.fetchRandomPhoto();
 
 		imageStoreTag && ImageStore.removeImageForTag(imageStoreTag);
-	};
-
-	rotate = () => {
-		this.imageCropper.rotateImage();
 	};
 
 	clearImageFromStore = () => {
@@ -211,6 +193,14 @@ class ImageCropper extends React.Component {
 	componentWillMount() {
 		// scale an image to the minimum size that is large enough to completely
 		// fill the crop box.
+		if (!this.props.image.width || !this.props.image.height) {
+			Image.getSize(
+				this.props.image,
+				(...args) => console.log(args),
+				(...args) => console.log(args)
+			);
+		}
+
 		const widthRatio = this.props.image.width / this.props.size.width;
 		const heightRatio = this.props.image.height / this.props.size.height;
 

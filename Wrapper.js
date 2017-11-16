@@ -8,6 +8,7 @@ export default class Wrapper extends React.Component {
 			<View style={{ flex: 1 }}>
 				<ImageCropper
 					ref={i => (this.imageCropper = i)}
+					image={require("./image.jpg")}
 					onCropImage={(err, uri) => console.log(uri)}
 				/>
 				<TouchableHighlight onPress={() => this.imageCropper.crop()}>
