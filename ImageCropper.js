@@ -1,7 +1,9 @@
 const React = require("react");
 const ReactNative = require("react-native");
 const {
+	Animated,
 	CameraRoll,
+	Easing,
 	Image,
 	ImageEditor,
 	ImageStore,
@@ -175,6 +177,10 @@ class SquareImageCropper extends React.Component {
 		imageStoreTag && ImageStore.removeImageForTag(imageStoreTag);
 	};
 
+	rotate = () => {
+		this.imageCropper.rotateImage();
+	};
+
 	clearImageFromStore = () => {
 		this.state.croppedImageURI &&
 			ImageStore.removeImageForTag(this.state.croppedImageURI);
@@ -187,6 +193,15 @@ class ImageCropper extends React.Component {
 	minimumZoomScale: number;
 	scaledImageSize: ImageSize;
 	horizontal: boolean;
+
+	constructor(props) {
+		super(props);
+
+		this.state = {
+			rotation: 0,
+			rotationAnimated: new Animated.Value(0),
+		};
+	}
 
 	componentWillMount() {
 		// Scale an image to the minimum size that is large enough to completely
@@ -281,7 +296,24 @@ class ImageCropper extends React.Component {
 		return false;
 	};
 
+	rotateImage = () => {
+		const newValue = this.state.rotation + 90;
+
+		Animated.timing(this.state.rotationAnimated, {
+			toValue: newValue,
+			duration: 225,
+			useNativeDriver: true,
+		}).start(() => {
+			this.setState({ rotation: newValue });
+		});
+	};
+
 	render() {
+		const interpolatedRotation = this.state.rotationAnimated.interpolate({
+			inputRange: [0, 360],
+			outputRange: ["0deg", "360deg"],
+		});
+
 		return (
 			<View onStartShouldSetResponder={this.detectDoubleTap}>
 				<ScrollView
@@ -301,9 +333,12 @@ class ImageCropper extends React.Component {
 					scrollEventThrottle={16}
 					scrollsToTop={false}
 				>
-					<Image
+					<Animated.Image
 						source={this.props.image}
-						style={this.scaledImageSize}
+						style={[
+							this.scaledImageSize,
+							{ transform: [{ rotate: interpolatedRotation }] },
+						]}
 						capInsets={{ top: 0.01, left: 0.01, bottom: 0.01, right: 0.01 }}
 					/>
 				</ScrollView>

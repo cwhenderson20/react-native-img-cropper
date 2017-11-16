@@ -20,6 +20,11 @@ export default class Wrapper extends React.Component {
 						<Text>Reset</Text>
 					</View>
 				</TouchableHighlight>
+				<TouchableHighlight onPress={() => this.imageCropper.rotate()}>
+					<View style={{ padding: 20, backgroundColor: "lightgreen" }}>
+						<Text>Rotate</Text>
+					</View>
+				</TouchableHighlight>
 			</View>
 		);
 	}
