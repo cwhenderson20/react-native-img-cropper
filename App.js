@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import image from "./image.jpg";
 
+console.log(image);
+
 const windowDimensions = Dimensions.get("window");
 const imageDimensions = {
 	width: 2352,
