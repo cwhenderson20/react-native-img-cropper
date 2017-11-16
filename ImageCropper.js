@@ -7,6 +7,7 @@ const {
 	Image,
 	ImageEditor,
 	ImageStore,
+	NativeModules,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -31,6 +32,7 @@ type ImageCropData = {
 	size: ImageSize,
 	displaySize?: ?ImageSize,
 	resizeMode?: ?any,
+	rotation?: ?Number,
 };
 
 class SquareImageCropper extends React.Component {
@@ -130,6 +132,8 @@ class SquareImageCropper extends React.Component {
 	}
 
 	renderCroppedImage() {
+		console.log(this.transformData);
+
 		return (
 			<View style={styles.container}>
 				<Text>Here is the cropped image:</Text>
@@ -154,6 +158,7 @@ class SquareImageCropper extends React.Component {
 			this.state.randomPhoto.uri,
 			this.transformData,
 			croppedImageURI => {
+				console.log(NativeModules);
 				this.setState({ croppedImageURI });
 				this.props.onCropImage && this.props.onCropImage(null, croppedImageURI);
 			},
@@ -204,7 +209,7 @@ class ImageCropper extends React.Component {
 	}
 
 	componentWillMount() {
-		// Scale an image to the minimum size that is large enough to completely
+		// scale an image to the minimum size that is large enough to completely
 		// fill the crop box.
 		const widthRatio = this.props.image.width / this.props.size.width;
 		const heightRatio = this.props.image.height / this.props.size.height;
@@ -223,16 +228,19 @@ class ImageCropper extends React.Component {
 			};
 		}
 
+		// center the scaled image in the view
 		this.contentOffset = {
 			x: (this.scaledImageSize.width - this.props.size.width) / 2,
 			y: (this.scaledImageSize.height - this.props.size.height) / 2,
 		};
 
+		// highest zoom level
 		this.maximumZoomScale = Math.min(
 			this.props.image.width / this.scaledImageSize.width,
 			this.props.image.height / this.scaledImageSize.height
 		);
 
+		// lowest zoom level
 		this.minimumZoomScale = Math.max(
 			this.props.size.width / this.scaledImageSize.width,
 			this.props.size.height / this.scaledImageSize.height
@@ -253,7 +261,7 @@ class ImageCropper extends React.Component {
 		);
 	};
 
-	updateTransformData(offset, scaledImageSize, croppedImageSize) {
+	updateTransformData(offset, scaledImageSize, croppedImageSize, rotation) {
 		const offsetRatioX = offset.x / scaledImageSize.width;
 		const offsetRatioY = offset.y / scaledImageSize.height;
 		const sizeRatioX = croppedImageSize.width / scaledImageSize.width;
@@ -268,6 +276,7 @@ class ImageCropper extends React.Component {
 				width: this.props.image.width * sizeRatioX,
 				height: this.props.image.height * sizeRatioY,
 			},
+			rotation: rotation || this.state.rotation,
 		};
 
 		this.props.onTransformDataChange &&
@@ -304,7 +313,13 @@ class ImageCropper extends React.Component {
 			duration: 225,
 			useNativeDriver: true,
 		}).start(() => {
-			this.setState({ rotation: newValue });
+			this.setState({ rotation: newValue }, () => {
+				this.updateTransformData(
+					this.contentOffset,
+					this.scaledImageSize,
+					this.props.size
+				);
+			});
 		});
 	};
 
@@ -315,33 +330,39 @@ class ImageCropper extends React.Component {
 		});
 
 		return (
-			<View onStartShouldSetResponder={this.detectDoubleTap}>
-				<ScrollView
-					ref={scrollView => (this.scrollView = scrollView)}
-					alwaysBounceVertical={true}
-					automaticallyAdjustContentInsets={false}
-					contentOffset={this.contentOffset}
-					decelerationRate="fast"
-					horizontal={this.horizontal}
-					maximumZoomScale={this.maximumZoomScale}
-					minimumZoomScale={this.minimumZoomScale}
-					onMomentumScrollEnd={this.onScroll}
-					onScrollEndDrag={this.onScroll}
-					showsHorizontalScrollIndicator={false}
-					showsVerticalScrollIndicator={false}
-					style={this.props.style}
-					scrollEventThrottle={16}
-					scrollsToTop={false}
+			<View
+				onStartShouldSetResponder={this.detectDoubleTap}
+				style={{ overflow: "hidden" }}
+			>
+				<Animated.View
+					style={{
+						transform: [{ rotate: interpolatedRotation }],
+					}}
 				>
-					<Animated.Image
-						source={this.props.image}
-						style={[
-							this.scaledImageSize,
-							{ transform: [{ rotate: interpolatedRotation }] },
-						]}
-						capInsets={{ top: 0.01, left: 0.01, bottom: 0.01, right: 0.01 }}
-					/>
-				</ScrollView>
+					<ScrollView
+						ref={scrollView => (this.scrollView = scrollView)}
+						alwaysBounceVertical={true}
+						automaticallyAdjustContentInsets={false}
+						contentOffset={this.contentOffset}
+						decelerationRate="fast"
+						horizontal={this.horizontal}
+						maximumZoomScale={this.maximumZoomScale}
+						minimumZoomScale={this.minimumZoomScale}
+						onMomentumScrollEnd={this.onScroll}
+						onScrollEndDrag={this.onScroll}
+						showsHorizontalScrollIndicator={false}
+						showsVerticalScrollIndicator={false}
+						style={this.props.style}
+						scrollEventThrottle={16}
+						scrollsToTop={false}
+					>
+						<Image
+							source={this.props.image}
+							style={[this.scaledImageSize]}
+							capInsets={{ top: 0.01, left: 0.01, bottom: 0.01, right: 0.01 }}
+						/>
+					</ScrollView>
+				</Animated.View>
 			</View>
 		);
 	}

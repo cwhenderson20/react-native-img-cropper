@@ -12,7 +12,7 @@ export default class Wrapper extends React.Component {
 				/>
 				<TouchableHighlight onPress={() => this.imageCropper.crop()}>
 					<View style={{ padding: 20, backgroundColor: "lightblue" }}>
-						<Text>Crop External</Text>
+						<Text>Crop</Text>
 					</View>
 				</TouchableHighlight>
 				<TouchableHighlight onPress={() => this.imageCropper.reset()}>
