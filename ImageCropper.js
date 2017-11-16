@@ -1,10 +1,9 @@
-var React = require("react");
-var ReactNative = require("react-native");
-var {
+const React = require("react");
+const ReactNative = require("react-native");
+const {
 	CameraRoll,
 	Image,
 	ImageEditor,
-	Platform,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -12,7 +11,7 @@ var {
 	View,
 } = ReactNative;
 
-var PAGE_SIZE = 20;
+const PAGE_SIZE = 20;
 
 type ImageOffset = {
 	x: number,
@@ -33,30 +32,27 @@ type ImageCropData = {
 
 class SquareImageCropper extends React.Component {
 	state: any;
-	_isMounted: boolean;
-	_transformData: ImageCropData;
+	isMounted: boolean;
+	transformData: ImageCropData;
 
 	constructor(props) {
 		super(props);
-		this._isMounted = true;
+
 		this.state = {
 			randomPhoto: null,
 			measuredSize: null,
 			croppedImageURI: null,
 			cropError: null,
 		};
-		this._fetchRandomPhoto();
 	}
 
-	async _fetchRandomPhoto() {
+	async fetchRandomPhoto() {
 		try {
 			const data = await CameraRoll.getPhotos({ first: PAGE_SIZE });
-			if (!this._isMounted) {
-				return;
-			}
-			var edges = data.edges;
-			var edge = edges[Math.floor(Math.random() * edges.length)];
-			var randomPhoto = edge && edge.node && edge.node.image;
+			const edges = data.edges;
+			const edge = edges[Math.floor(Math.random() * edges.length)];
+			const randomPhoto = edge && edge.node && edge.node.image;
+
 			if (randomPhoto) {
 				this.setState({ randomPhoto });
 			}
@@ -65,39 +61,39 @@ class SquareImageCropper extends React.Component {
 		}
 	}
 
-	componentWillUnmount() {
-		this._isMounted = false;
+	componentDidMount() {
+		this.fetchRandomPhoto();
 	}
 
 	render() {
 		if (!this.state.measuredSize) {
 			return (
-				<View style={styles.outerContainer}>
-					<View
-						style={styles.container}
-						onLayout={event => {
-							var measuredWidth = event.nativeEvent.layout.width;
-							if (!measuredWidth) {
-								return;
-							}
+				<View
+					style={styles.container}
+					onLayout={event => {
+						const measuredWidth = event.nativeEvent.layout.width;
 
-							this.setState({
-								measuredSize: { width: measuredWidth, height: measuredWidth },
-							});
-						}}
-					/>
-				</View>
+						if (!measuredWidth) {
+							return;
+						}
+
+						this.setState({
+							measuredSize: { width: measuredWidth, height: measuredWidth },
+						});
+					}}
+				/>
 			);
 		}
 
 		if (!this.state.croppedImageURI) {
-			return this._renderImageCropper();
+			return this.renderImageCropper();
 		}
-		return this._renderCroppedImage();
+
+		return this.renderCroppedImage();
 	}
 
-	_renderImageCropper() {
-		var error = null;
+	renderImageCropper() {
+		let error = null;
 
 		if (!this.state.randomPhoto) {
 			return <View style={styles.container} />;
@@ -108,153 +104,137 @@ class SquareImageCropper extends React.Component {
 		}
 
 		return (
-			<View style={styles.outerContainer}>
-				<View style={styles.container}>
-					<Text>Drag the image within the square to crop:</Text>
-					<ImageCropper
-						ref={imageCropper => (this.imageCropper = imageCropper)}
-						image={this.state.randomPhoto}
-						size={this.state.measuredSize}
-						style={[styles.imageCropper, this.state.measuredSize]}
-						onTransformDataChange={data => (this._transformData = data)}
-					/>
-					<TouchableHighlight
-						style={styles.cropButtonTouchable}
-						onPress={this._crop.bind(this)}
-					>
-						<View style={styles.cropButton}>
-							<Text style={styles.cropButtonLabel}>Crop</Text>
-						</View>
-					</TouchableHighlight>
-					<TouchableHighlight
-						style={styles.cropButtonTouchable}
-						onPress={this._scrollTo.bind(this)}
-					>
-						<View style={styles.cropButton}>
-							<Text style={styles.cropButtonLabel}>Scroll To</Text>
-						</View>
-					</TouchableHighlight>
-					{error}
-				</View>
+			<View style={styles.container}>
+				<Text>Drag the image within the square to crop:</Text>
+				<ImageCropper
+					ref={imageCropper => (this.imageCropper = imageCropper)}
+					image={this.state.randomPhoto}
+					size={this.state.measuredSize}
+					style={[styles.imageCropper, this.state.measuredSize]}
+					onTransformDataChange={data => (this.transformData = data)}
+				/>
+				<TouchableHighlight
+					style={styles.cropButtonTouchable}
+					onPress={this.crop}
+				>
+					<View style={styles.cropButton}>
+						<Text style={styles.cropButtonLabel}>Crop</Text>
+					</View>
+				</TouchableHighlight>
+				{error}
 			</View>
 		);
 	}
 
-	_renderCroppedImage() {
+	renderCroppedImage() {
 		return (
-			<View style={styles.outerContainer}>
-				<View style={styles.container}>
-					<Text>Here is the cropped image:</Text>
-					<Image
-						source={{ uri: this.state.croppedImageURI }}
-						style={[styles.imageCropper, this.state.measuredSize]}
-					/>
-					<TouchableHighlight
-						style={styles.cropButtonTouchable}
-						onPress={this._reset.bind(this)}
-					>
-						<View style={styles.cropButton}>
-							<Text style={styles.cropButtonLabel}>Try again</Text>
-						</View>
-					</TouchableHighlight>
-				</View>
+			<View style={styles.container}>
+				<Text>Here is the cropped image:</Text>
+				<Image
+					source={{ uri: this.state.croppedImageURI }}
+					style={[styles.imageCropper, this.state.measuredSize]}
+				/>
+				<TouchableHighlight
+					style={styles.cropButtonTouchable}
+					onPress={this.reset}
+				>
+					<View style={styles.cropButton}>
+						<Text style={styles.cropButtonLabel}>Try again</Text>
+					</View>
+				</TouchableHighlight>
 			</View>
 		);
 	}
 
-	_crop() {
+	crop = () => {
 		ImageEditor.cropImage(
 			this.state.randomPhoto.uri,
-			this._transformData,
-			croppedImageURI => this.setState({ croppedImageURI }),
-			cropError => this.setState({ cropError })
+			this.transformData,
+			croppedImageURI => {
+				this.setState({ croppedImageURI });
+				this.props.onCropImage && this.props.onCropImage(null, croppedImageURI);
+			},
+			cropError => {
+				this.setState({ cropError });
+				this.props.onCropImage && this.props.onCropImage(cropError);
+			}
 		);
-	}
+	};
 
-	_scrollTo() {
-		this.imageCropper.scrollView.scrollTo({
-			x: 300,
-			y: 0,
-			animated: true,
-		});
-	}
-
-	_reset() {
+	reset = () => {
 		this.setState({
 			randomPhoto: null,
 			croppedImageURI: null,
 			cropError: null,
 		});
-		this._fetchRandomPhoto();
-	}
+		this.fetchRandomPhoto();
+	};
 }
 
 class ImageCropper extends React.Component {
-	_contentOffset: ImageOffset;
-	_maximumZoomScale: number;
-	_minimumZoomScale: number;
-	_scaledImageSize: ImageSize;
-	_horizontal: boolean;
+	contentOffset: ImageOffset;
+	maximumZoomScale: number;
+	minimumZoomScale: number;
+	scaledImageSize: ImageSize;
+	horizontal: boolean;
 
 	componentWillMount() {
 		// Scale an image to the minimum size that is large enough to completely
 		// fill the crop box.
-		var widthRatio = this.props.image.width / this.props.size.width;
-		var heightRatio = this.props.image.height / this.props.size.height;
-		this._horizontal = widthRatio > heightRatio;
-		if (this._horizontal) {
-			this._scaledImageSize = {
+		const widthRatio = this.props.image.width / this.props.size.width;
+		const heightRatio = this.props.image.height / this.props.size.height;
+
+		this.horizontal = widthRatio > heightRatio;
+
+		if (this.horizontal) {
+			this.scaledImageSize = {
 				width: this.props.image.width / heightRatio,
 				height: this.props.size.height,
 			};
 		} else {
-			this._scaledImageSize = {
+			this.scaledImageSize = {
 				width: this.props.size.width,
 				height: this.props.image.height / widthRatio,
 			};
-			if (Platform.OS === "android") {
-				// hack to work around Android ScrollView a) not supporting zoom, and
-				// b) not supporting vertical scrolling when nested inside another
-				// vertical ScrollView (which it is, when displayed inside UIExplorer)
-				this._scaledImageSize.width *= 2;
-				this._scaledImageSize.height *= 2;
-				this._horizontal = true;
-			}
 		}
-		this._contentOffset = {
-			x: (this._scaledImageSize.width - this.props.size.width) / 2,
-			y: (this._scaledImageSize.height - this.props.size.height) / 2,
+
+		this.contentOffset = {
+			x: (this.scaledImageSize.width - this.props.size.width) / 2,
+			y: (this.scaledImageSize.height - this.props.size.height) / 2,
 		};
-		this._maximumZoomScale = Math.min(
-			this.props.image.width / this._scaledImageSize.width,
-			this.props.image.height / this._scaledImageSize.height
+
+		this.maximumZoomScale = Math.min(
+			this.props.image.width / this.scaledImageSize.width,
+			this.props.image.height / this.scaledImageSize.height
 		);
-		this._minimumZoomScale = Math.max(
-			this.props.size.width / this._scaledImageSize.width,
-			this.props.size.height / this._scaledImageSize.height
+
+		this.minimumZoomScale = Math.max(
+			this.props.size.width / this.scaledImageSize.width,
+			this.props.size.height / this.scaledImageSize.height
 		);
-		this._updateTransformData(
-			this._contentOffset,
-			this._scaledImageSize,
+
+		this.updateTransformData(
+			this.contentOffset,
+			this.scaledImageSize,
 			this.props.size
 		);
 	}
 
-	_onScroll(event) {
-		this._updateTransformData(
+	onScroll = event => {
+		this.updateTransformData(
 			event.nativeEvent.contentOffset,
 			event.nativeEvent.contentSize,
 			event.nativeEvent.layoutMeasurement
 		);
-	}
+	};
 
-	_updateTransformData(offset, scaledImageSize, croppedImageSize) {
-		var offsetRatioX = offset.x / scaledImageSize.width;
-		var offsetRatioY = offset.y / scaledImageSize.height;
-		var sizeRatioX = croppedImageSize.width / scaledImageSize.width;
-		var sizeRatioY = croppedImageSize.height / scaledImageSize.height;
+	updateTransformData(offset, scaledImageSize, croppedImageSize) {
+		const offsetRatioX = offset.x / scaledImageSize.width;
+		const offsetRatioY = offset.y / scaledImageSize.height;
+		const sizeRatioX = croppedImageSize.width / scaledImageSize.width;
+		const sizeRatioY = croppedImageSize.height / scaledImageSize.height;
 
-		var cropData: ImageCropData = {
+		const cropData: ImageCropData = {
 			offset: {
 				x: this.props.image.width * offsetRatioX,
 				y: this.props.image.height * offsetRatioY,
@@ -264,25 +244,26 @@ class ImageCropper extends React.Component {
 				height: this.props.image.height * sizeRatioY,
 			},
 		};
+
 		this.props.onTransformDataChange &&
 			this.props.onTransformDataChange(cropData);
 	}
 
-	_resetZoom = () => {
+	resetZoom = () => {
 		this.scrollView.scrollResponderZoomTo({
 			x: 0,
 			y: 0,
-			width: this._scaledImageSize.width,
-			height: this._scaledImageSize.height,
+			width: this.scaledImageSize.width,
+			height: this.scaledImageSize.height,
 			animated: true,
 		});
 	};
 
-	_detectDoubleTap = event => {
+	detectDoubleTap = event => {
 		const thisTapTime = event.nativeEvent.timestamp;
 
 		if (this.lastTap && thisTapTime - this.lastTap <= 300) {
-			this._resetZoom();
+			this.resetZoom();
 		}
 
 		this.lastTap = thisTapTime;
@@ -292,18 +273,18 @@ class ImageCropper extends React.Component {
 
 	render() {
 		return (
-			<View onStartShouldSetResponder={this._detectDoubleTap}>
+			<View onStartShouldSetResponder={this.detectDoubleTap}>
 				<ScrollView
 					ref={scrollView => (this.scrollView = scrollView)}
 					alwaysBounceVertical={true}
 					automaticallyAdjustContentInsets={false}
-					contentOffset={this._contentOffset}
+					contentOffset={this.contentOffset}
 					decelerationRate="fast"
-					horizontal={this._horizontal}
-					maximumZoomScale={this._maximumZoomScale}
-					minimumZoomScale={this._minimumZoomScale}
-					onMomentumScrollEnd={this._onScroll.bind(this)}
-					onScrollEndDrag={this._onScroll.bind(this)}
+					horizontal={this.horizontal}
+					maximumZoomScale={this.maximumZoomScale}
+					minimumZoomScale={this.minimumZoomScale}
+					onMomentumScrollEnd={this.onScroll}
+					onScrollEndDrag={this.onScroll}
 					showsHorizontalScrollIndicator={false}
 					showsVerticalScrollIndicator={false}
 					style={this.props.style}
@@ -312,7 +293,7 @@ class ImageCropper extends React.Component {
 				>
 					<Image
 						source={this.props.image}
-						style={this._scaledImageSize}
+						style={this.scaledImageSize}
 						capInsets={{ top: 0.01, left: 0.01, bottom: 0.01, right: 0.01 }}
 					/>
 				</ScrollView>
@@ -321,25 +302,15 @@ class ImageCropper extends React.Component {
 	}
 }
 
-exports.framework = "React";
-exports.title = "ImageEditor";
-exports.description = "Cropping and scaling with ImageEditor";
-
 export default SquareImageCropper;
 
-var styles = StyleSheet.create({
-	outerContainer: {
-		flex: 1,
-		alignSelf: "stretch",
-		margin: 40,
-	},
+const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		alignSelf: "stretch",
 	},
 	imageCropper: {
 		alignSelf: "center",
-		marginTop: 12,
 	},
 	cropButtonTouchable: {
 		alignSelf: "center",
