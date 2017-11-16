@@ -310,7 +310,11 @@ class ImageCropper extends React.Component {
 					scrollEventThrottle={16}
 					scrollsToTop={false}
 				>
-					<Image source={this.props.image} style={this._scaledImageSize} />
+					<Image
+						source={this.props.image}
+						style={this._scaledImageSize}
+						capInsets={{ top: 0.01, left: 0.01, bottom: 0.01, right: 0.01 }}
+					/>
 				</ScrollView>
 			</View>
 		);
