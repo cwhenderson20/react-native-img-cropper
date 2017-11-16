@@ -1,4 +1,4 @@
 import { AppRegistry } from "react-native";
-import App from "./ImageCropper";
+import App from "./Wrapper";
 
 AppRegistry.registerComponent("imagecropper", () => App);

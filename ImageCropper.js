@@ -4,6 +4,7 @@ const {
 	CameraRoll,
 	Image,
 	ImageEditor,
+	ImageStore,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -162,12 +163,21 @@ class SquareImageCropper extends React.Component {
 	};
 
 	reset = () => {
+		const imageStoreTag = this.state.croppedImageURI;
+
 		this.setState({
 			randomPhoto: null,
 			croppedImageURI: null,
 			cropError: null,
 		});
 		this.fetchRandomPhoto();
+
+		imageStoreTag && ImageStore.removeImageForTag(imageStoreTag);
+	};
+
+	clearImageFromStore = () => {
+		this.state.croppedImageURI &&
+			ImageStore.removeImageForTag(this.state.croppedImageURI);
 	};
 }
 
