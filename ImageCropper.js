@@ -268,9 +268,31 @@ class ImageCropper extends React.Component {
 			this.props.onTransformDataChange(cropData);
 	}
 
+	_resetZoom = () => {
+		this.scrollView.scrollResponderZoomTo({
+			x: 0,
+			y: 0,
+			width: this._scaledImageSize.width,
+			height: this._scaledImageSize.height,
+			animated: true,
+		});
+	};
+
+	_detectDoubleTap = event => {
+		const thisTapTime = event.nativeEvent.timestamp;
+
+		if (this.lastTap && thisTapTime - this.lastTap <= 300) {
+			this._resetZoom();
+		}
+
+		this.lastTap = thisTapTime;
+
+		return false;
+	};
+
 	render() {
 		return (
-			<View>
+			<View onStartShouldSetResponder={this._detectDoubleTap}>
 				<ScrollView
 					ref={scrollView => (this.scrollView = scrollView)}
 					alwaysBounceVertical={true}
