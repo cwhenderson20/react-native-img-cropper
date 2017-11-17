@@ -15,6 +15,7 @@ import {
 	TouchableHighlight,
 	View,
 } from "react-native";
+import type { StyleObj } from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 
 type ImageOffset = {
 	x: number,
@@ -31,17 +32,19 @@ type ImageCropData = {
 	size: ImageSize,
 	displaySize?: ?ImageSize,
 	resizeMode?: ?any,
-	rotation?: ?Number,
+	rotation?: ?number,
+};
+
+type ImageSource = {
+	uri: string,
+	height?: number,
+	width?: number,
 };
 
 type Props = {
-	image: {
-		uri: string,
-		height?: number,
-		width?: number,
-	},
+	image: ImageSource,
 	onCropImage?: (
-		error: ?string,
+		error: ?{ message: string },
 		result?: { name: string, path: string, uri: string, size: number }
 	) => any,
 };
@@ -52,7 +55,7 @@ type State = {
 		height: number,
 	},
 	croppedImageURI: ?string,
-	cropError: ?string,
+	cropError: ?{ message: string },
 	imageSize: ?{
 		width: number,
 		height: number,
@@ -60,11 +63,11 @@ type State = {
 	keyAccumulator: number,
 };
 
-class SquareImageCropper extends React.Component<State, Props> {
-	state: any;
-	transformData: ImageCropData;
+class SquareImageCropper extends React.Component<Props, State> {
+	transformData: ?ImageCropData;
+	imageCropper: ?ImageCropper;
 
-	constructor(props) {
+	constructor(props: Props) {
 		super(props);
 
 		this.state = {
@@ -80,7 +83,7 @@ class SquareImageCropper extends React.Component<State, Props> {
 		this.updateImageSize();
 	}
 
-	componentWillReceiveProps(nextProps) {
+	componentWillReceiveProps(nextProps: Props) {
 		if (!this.isSameSource(this.props.image, nextProps.image)) {
 			this.transformData = null;
 			this.setState(
@@ -137,7 +140,11 @@ class SquareImageCropper extends React.Component<State, Props> {
 	renderImageCropper() {
 		let error = null;
 
-		if (!this.props.image || !this.state.imageSize) {
+		if (
+			!this.props.image ||
+			!this.state.imageSize ||
+			!this.state.measuredSize
+		) {
 			return <View style={styles.container} />;
 		}
 
@@ -180,7 +187,7 @@ class SquareImageCropper extends React.Component<State, Props> {
 		}
 	}
 
-	isSameSource(currentSource, nextSource) {
+	isSameSource(currentSource: ImageSource, nextSource: ImageSource) {
 		if (currentSource === nextSource) {
 			return true;
 		}
@@ -195,9 +202,12 @@ class SquareImageCropper extends React.Component<State, Props> {
 	}
 
 	crop = () => {
-		if (!this.props.image) {
+		if (!this.props.image || !this.transformData || !this.state.measuredSize) {
 			return;
 		}
+
+		const transformData = { ...this.transformData };
+		const measuredSize = { ...this.state.measuredSize };
 
 		ImageEditor.cropImage(
 			this.props.image.uri,
@@ -207,11 +217,11 @@ class SquareImageCropper extends React.Component<State, Props> {
 					croppedImageURI,
 					// this.transformData.size.width,
 					// this.transformData.size.height,
-					this.state.measuredSize.width,
-					this.state.measuredSize.height,
+					measuredSize.width,
+					measuredSize.height,
 					"PNG",
 					100,
-					this.transformData.rotation
+					transformData.rotation
 				).then(result => {
 					this.setState({ croppedImageURI: result.uri });
 					this.props.onCropImage && this.props.onCropImage(null, result);
@@ -236,11 +246,9 @@ class SquareImageCropper extends React.Component<State, Props> {
 		const imageStoreTag = this.state.croppedImageURI;
 
 		this.setState({
-			randomPhoto: null,
 			croppedImageURI: null,
 			cropError: null,
 		});
-		this.fetchRandomPhoto();
 
 		imageStoreTag && ImageStore.removeImageForTag(imageStoreTag);
 	};
@@ -251,14 +259,38 @@ class SquareImageCropper extends React.Component<State, Props> {
 	};
 }
 
-class ImageCropper extends React.Component {
+type ImageCropperProps = {
+	image: ImageSource,
+	imageSize: {
+		width: number,
+		height: number,
+	},
+	size: {
+		width: number,
+		height: number,
+	},
+	onTransformDataChange: ImageCropData => any,
+	style?: StyleObj,
+};
+
+type ImageCropperState = {
+	rotation: number,
+	rotationAnimated: any,
+};
+
+class ImageCropper extends React.Component<
+	ImageCropperProps,
+	ImageCropperState
+> {
 	contentOffset: ImageOffset;
 	maximumZoomScale: number;
 	minimumZoomScale: number;
 	scaledImageSize: ImageSize;
 	horizontal: boolean;
+	scrollView: ?any;
+	lastTapTime: ?number;
 
-	constructor(props) {
+	constructor(props: ImageCropperProps) {
 		super(props);
 
 		this.state = {
@@ -328,12 +360,12 @@ class ImageCropper extends React.Component {
 
 		const cropData: ImageCropData = {
 			offset: {
-				x: this.props.image.width * offsetRatioX,
-				y: this.props.image.height * offsetRatioY,
+				x: this.props.imageSize.width * offsetRatioX,
+				y: this.props.imageSize.height * offsetRatioY,
 			},
 			size: {
-				width: this.props.image.width * sizeRatioX,
-				height: this.props.image.height * sizeRatioY,
+				width: this.props.imageSize.width * sizeRatioX,
+				height: this.props.imageSize.height * sizeRatioY,
 			},
 			rotation: rotation || this.state.rotation,
 		};
@@ -343,23 +375,24 @@ class ImageCropper extends React.Component {
 	}
 
 	resetZoom = () => {
-		this.scrollView.scrollResponderZoomTo({
-			x: 0,
-			y: 0,
-			width: this.scaledImageSize.width,
-			height: this.scaledImageSize.height,
-			animated: true,
-		});
+		this.scrollView &&
+			this.scrollView.scrollResponderZoomTo({
+				x: 0,
+				y: 0,
+				width: this.scaledImageSize.width,
+				height: this.scaledImageSize.height,
+				animated: true,
+			});
 	};
 
 	detectDoubleTap = event => {
 		const thisTapTime = event.nativeEvent.timestamp;
 
-		if (this.lastTap && thisTapTime - this.lastTap <= 300) {
+		if (this.lastTapTime && thisTapTime - this.lastTapTime <= 300) {
 			this.resetZoom();
 		}
 
-		this.lastTap = thisTapTime;
+		this.lastTapTime = thisTapTime;
 
 		return false;
 	};

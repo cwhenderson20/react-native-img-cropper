@@ -1,6 +1,8 @@
 {
 	"javascript.format.enable": false,
+	"javascript.validate.enable": false,
 	"editor.formatOnSave": true,
 	"prettier.trailingComma": "es5",
-	"prettier.useTabs": true
+	"prettier.useTabs": true,
+	"flow.useNPMPackagedFlow": true
 }
