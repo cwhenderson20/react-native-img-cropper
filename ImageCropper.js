@@ -1,3 +1,5 @@
+// @flow
+
 import * as React from "react";
 import ImageResizer from "react-native-image-resizer";
 import {
@@ -13,8 +15,6 @@ import {
 	TouchableHighlight,
 	View,
 } from "react-native";
-
-const PAGE_SIZE = 20;
 
 type ImageOffset = {
 	x: number,
@@ -34,39 +34,78 @@ type ImageCropData = {
 	rotation?: ?Number,
 };
 
-class SquareImageCropper extends React.Component {
+type Props = {
+	image: {
+		uri: string,
+		height?: number,
+		width?: number,
+	},
+	onCropImage?: (
+		error: ?string,
+		result?: { name: string, path: string, uri: string, size: number }
+	) => any,
+};
+
+type State = {
+	measuredSize: ?{
+		width: number,
+		height: number,
+	},
+	croppedImageURI: ?string,
+	cropError: ?string,
+	imageSize: ?{
+		width: number,
+		height: number,
+	},
+	keyAccumulator: number,
+};
+
+class SquareImageCropper extends React.Component<State, Props> {
 	state: any;
-	isMounted: boolean;
 	transformData: ImageCropData;
 
 	constructor(props) {
 		super(props);
 
 		this.state = {
-			randomPhoto: null,
 			measuredSize: null,
 			croppedImageURI: null,
 			cropError: null,
+			imageSize: null,
+			keyAccumulator: 0,
 		};
 	}
 
-	async fetchRandomPhoto() {
-		try {
-			const data = await CameraRoll.getPhotos({ first: PAGE_SIZE });
-			const edges = data.edges;
-			const edge = edges[Math.floor(Math.random() * edges.length)];
-			const randomPhoto = edge && edge.node && edge.node.image;
+	componentDidMount() {
+		this.updateImageSize();
+	}
 
-			if (randomPhoto) {
-				this.setState({ randomPhoto });
-			}
-		} catch (error) {
-			console.warn("Can't get a photo from camera roll", error);
+	componentWillReceiveProps(nextProps) {
+		if (!this.isSameSource(this.props.image, nextProps.image)) {
+			this.transformData = null;
+			this.setState(
+				{
+					imageSize: null,
+					keyAccumulator: this.state.keyAccumulator + 1,
+				},
+				() => {
+					this.updateImageSize();
+				}
+			);
 		}
 	}
 
-	componentDidMount() {
-		this.fetchRandomPhoto();
+	updateImageSize() {
+		if (!this.props.image.width || !this.props.image.height) {
+			this.getImageSize();
+		} else {
+			this.setState({
+				imageSize: {
+					width: this.props.image.width,
+					height: this.props.image.height,
+				},
+			});
+		}
 	}
 
 	render() {
@@ -98,7 +137,7 @@ class SquareImageCropper extends React.Component {
 	renderImageCropper() {
 		let error = null;
 
-		if (!this.state.randomPhoto) {
+		if (!this.props.image || !this.state.imageSize) {
 			return <View style={styles.container} />;
 		}
 
@@ -109,8 +148,10 @@ class SquareImageCropper extends React.Component {
 		return (
 			<View style={styles.container}>
 				<ImageCropper
+					key={`imageCropper#${this.state.keyAccumulator}`}
 					ref={imageCropper => (this.imageCropper = imageCropper)}
-					image={this.state.randomPhoto}
+					image={this.props.image}
+					imageSize={this.state.imageSize}
 					size={this.state.measuredSize}
 					style={[styles.imageCropper, this.state.measuredSize]}
 					onTransformDataChange={data => (this.transformData = data)}
@@ -119,25 +160,61 @@ class SquareImageCropper extends React.Component {
 		);
 	}
 
+	getImageSize() {
+		if (this.props.image && this.props.image.uri) {
+			if (typeof Image.getSize === "function") {
+				Image.getSize(
+					this.props.image.uri,
+					(width, height) => {
+						if (width && height) {
+							this.setState({ imageSize: { width, height } });
+						}
+					},
+					error => console.error(error)
+				);
+			} else {
+				console.log("getImageSize is not available");
+			}
+		} else {
+			console.log("Static assets not supported");
+		}
+	}
+
+	isSameSource(currentSource, nextSource) {
+		if (currentSource === nextSource) {
+			return true;
+		}
+
+		if (currentSource && nextSource) {
+			if (currentSource.uri && nextSource.uri) {
+				return currentSource.uri === nextSource.uri;
+			}
+		}
+
+		return false;
+	}
+
 	crop = () => {
-		if (!this.state.randomPhoto) {
+		if (!this.props.image) {
 			return;
 		}
 
 		ImageEditor.cropImage(
-			this.state.randomPhoto.uri,
+			this.props.image.uri,
 			this.transformData,
 			croppedImageURI => {
 				ImageResizer.createResizedImage(
 					croppedImageURI,
-					this.transformData.size.width,
-					this.transformData.size.height,
+					// this.transformData.size.width,
+					// this.transformData.size.height,
+					this.state.measuredSize.width,
+					this.state.measuredSize.height,
 					"PNG",
 					100,
 					this.transformData.rotation
 				).then(result => {
 					this.setState({ croppedImageURI: result.uri });
-					this.props.onCropImage && this.props.onCropImage(null, result.uri);
+					this.props.onCropImage && this.props.onCropImage(null, result);
 					ImageStore.removeImageForTag(croppedImageURI);
 				});
 			},
@@ -193,28 +270,20 @@ class ImageCropper extends React.Component {
 	componentWillMount() {
 		// scale an image to the minimum size that is large enough to completely
 		// fill the crop box.
-		if (!this.props.image.width || !this.props.image.height) {
-			Image.getSize(
-				this.props.image,
-				(...args) => console.log(args),
-				(...args) => console.log(args)
-			);
-		}
-
-		const widthRatio = this.props.image.width / this.props.size.width;
-		const heightRatio = this.props.image.height / this.props.size.height;
+		const widthRatio = this.props.imageSize.width / this.props.size.width;
+		const heightRatio = this.props.imageSize.height / this.props.size.height;
 
 		this.horizontal = widthRatio > heightRatio;
 
 		if (this.horizontal) {
 			this.scaledImageSize = {
-				width: this.props.image.width / heightRatio,
+				width: this.props.imageSize.width / heightRatio,
 				height: this.props.size.height,
 			};
 		} else {
 			this.scaledImageSize = {
 				width: this.props.size.width,
-				height: this.props.image.height / widthRatio,
+				height: this.props.imageSize.height / widthRatio,
 			};
 		}
 
@@ -226,8 +295,8 @@ class ImageCropper extends React.Component {
 
 		// highest zoom level
 		this.maximumZoomScale = Math.min(
-			this.props.image.width / this.scaledImageSize.width,
-			this.props.image.height / this.scaledImageSize.height
+			this.props.imageSize.width / this.scaledImageSize.width,
+			this.props.imageSize.height / this.scaledImageSize.height
 		);
 
 		// lowest zoom level
