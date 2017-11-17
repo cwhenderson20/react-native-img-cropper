@@ -9,7 +9,7 @@ import {
 	Text,
 	View,
 } from "react-native";
-import image from "./image.jpg";
+// import image from "./image.jpg";
 
 console.log(image);
 
@@ -27,11 +27,10 @@ const imageContainerAspectRatio =
 	imageContainerDimensions.width / imageContainerDimensions.height;
 
 // the smaller content dimension must be at least as large as the larger container dimension
-// const scaleFactor =
-// 	imageContainerAspectRatio > imageAspectRatio
-// 		? imageContainerDimensions.width / imageDimensions.width
-// 		: imageContainerDimensions.height / imageDimensions.height;
-const scaleFactor = 0.25;
+const scaleFactor =
+	imageContainerAspectRatio > imageAspectRatio
+		? imageContainerDimensions.width / imageDimensions.width
+		: imageContainerDimensions.height / imageDimensions.height;
 const maxScale = Math.max(
 	Math.max(
 		imageDimensions.width / imageContainerDimensions.width,
@@ -234,7 +233,7 @@ export default class App extends Component<{}> {
 				<View style={imageContainerStyle}>
 					<Animated.Image
 						ref={image => (this.image = image)}
-						source={image}
+						source={this.props.image}
 						style={imageStyle}
 						{...this.panResponder.panHandlers}
 					/>

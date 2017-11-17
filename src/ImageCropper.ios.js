@@ -103,6 +103,7 @@ class ImageCropper extends React.Component<Props, State> {
 	}
 
 	getImageSize() {
+		// TODO optimize this to check for existing dimensions
 		if (this.props.image && this.props.image.uri) {
 			if (typeof Image.getSize === "function") {
 				Image.getSize(

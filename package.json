@@ -6,6 +6,8 @@
 		"start": "node node_modules/react-native/local-cli/cli.js start",
 		"test": "jest"
 	},
+	"main": "./src/ImageCropper",
+	"module": "./src/ImageCropper",
 	"devDependencies": {
 		"@app-press/eslint-config": "^2.0.2",
 		"babel-eslint": "^8.0.2",
