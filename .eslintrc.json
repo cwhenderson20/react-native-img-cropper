@@ -1,0 +1,6 @@
+{
+	"extends": "@app-press/eslint-config/client",
+	"rules": {
+		"react/sort-comp": "off"
+	}
+}

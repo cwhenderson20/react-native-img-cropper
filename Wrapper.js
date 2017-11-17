@@ -1,6 +1,6 @@
 import * as React from "react";
-import { View, TouchableHighlight, Text } from "react-native";
-import ImageCropper from "./ImageCropper";
+import { View, TouchableHighlight, Text, StatusBar } from "react-native";
+import ImageCropper from "./src/ImageCropper.ios";
 
 const photo1 = {
 	filename: "IMG_0004.JPG",
@@ -22,7 +22,12 @@ const photo2 = {
 	width: 4288,
 };
 
-export default class Wrapper extends React.Component {
+// const photo3 = {
+// 	uri:
+// 		"https://static01.nyt.com/images/2017/11/16/opinion/16welch/16welch-master768.jpg",
+// };
+
+export default class Wrapper extends React.Component<*, *> {
 	constructor(props) {
 		super(props);
 
@@ -34,6 +39,7 @@ export default class Wrapper extends React.Component {
 	render() {
 		return (
 			<View style={{ flex: 1 }}>
+				<StatusBar hidden={true} />
 				<ImageCropper
 					ref={i => (this.imageCropper = i)}
 					image={this.state.photo}
@@ -58,7 +64,8 @@ export default class Wrapper extends React.Component {
 					onPress={() =>
 						this.setState({
 							photo: this.state.photo === photo1 ? photo2 : photo1,
-						})}
+						})
+					}
 				>
 					<View style={{ padding: 20, backgroundColor: "cyan" }}>
 						<Text>Switch Photo</Text>
