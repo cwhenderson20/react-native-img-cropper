@@ -1,6 +1,6 @@
 import * as React from "react";
 import { View, TouchableHighlight, Text, StatusBar } from "react-native";
-import ImageCropper from "./src/ImageCropper.ios";
+import ImageCropper from "react-native-image-cropper";
 
 const photo1 = {
 	filename: "IMG_0004.JPG",

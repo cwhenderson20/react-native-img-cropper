@@ -1,0 +1,20 @@
+{
+	"name": "imagecropper",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"start": "node node_modules/react-native/local-cli/cli.js start",
+		"ios": "node node_modules/react-native/local-cli/cli.js run-ios",
+		"android": "node node_modules/react-native/local-cli/cli.js run-android",
+		"sync":
+			"rm -rf ./node_modules/react-native-image-cropper; ./node_modules/sane/src/cli.js '/usr/bin/rsync -v -a --exclude .git --exclude example --exclude node_modules ../ ./node_modules/react-native-image-cropper/' .. --glob='**/*.json' --glob='**/*.js' --watchman"
+	},
+	"dependencies": {
+		"react": "16.0.0",
+		"react-native": "0.50.3",
+		"react-native-image-resizer": "^1.0.0"
+	},
+	"devDependencies": {
+		"sane": "^2.2.0"
+	}
+}
