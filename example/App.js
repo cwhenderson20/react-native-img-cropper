@@ -6,7 +6,7 @@ import {
 	StatusBar,
 	StyleSheet,
 } from "react-native";
-import ImageCropper from "react-native-image-cropper";
+import ImageCropper from "react-native-img-cropper";
 
 const photo1 = {
 	filename: "IMG_0004.JPG",
