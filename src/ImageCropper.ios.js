@@ -1,6 +1,7 @@
 // @flow
 
 import * as React from "react";
+import PropTypes from "prop-types";
 import ImageResizer from "react-native-image-resizer"; // eslint-disable-line import/no-unresolved, import/extensions
 import {
 	Image,
@@ -31,6 +32,11 @@ type State = {
 class ImageCropper extends React.Component<Props, State> {
 	transformData: ?ImageCropData;
 	imageEditor: ?ImageEditor;
+
+	static propTypes = {
+		image: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+		onCropImage: PropTypes.func,
+	};
 
 	constructor(props: Props) {
 		super(props);
@@ -82,8 +88,6 @@ class ImageCropper extends React.Component<Props, State> {
 			croppedImageURI => {
 				ImageResizer.createResizedImage(
 					croppedImageURI,
-					// this.transformData.size.width,
-					// this.transformData.size.height,
 					measuredSize.width,
 					measuredSize.height,
 					"PNG",
@@ -137,16 +141,13 @@ class ImageCropper extends React.Component<Props, State> {
 		return false;
 	}
 
-	// FIXME this doesn't work anymore
-	reset() {
-		const imageStoreTag = this.state.croppedImageURI;
-
+	reset(animateZoom?: boolean, animateRotation?: boolean) {
+		this.clearImageFromStore();
 		this.setState({
 			croppedImageURI: null,
 			cropError: null,
 		});
-
-		imageStoreTag && ImageStore.removeImageForTag(imageStoreTag);
+		this.imageEditor && this.imageEditor.reset(animateZoom, animateRotation);
 	}
 
 	rotate() {

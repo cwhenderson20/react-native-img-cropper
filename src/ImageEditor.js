@@ -1,6 +1,7 @@
 // @flow
 
 import * as React from "react";
+import PropTypes from "prop-types";
 import { Animated, Image, ScrollView, View, StyleSheet } from "react-native";
 import type { StyleObj } from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 import type {
@@ -16,7 +17,7 @@ type ImageEditorProps = {
 	image: ImageSource,
 	imageSize: ImageSize,
 	size: ImageSize,
-	onTransformDataChange: ImageCropData => any,
+	onTransformDataChange?: ImageCropData => any,
 	style?: StyleObj,
 };
 
@@ -26,6 +27,28 @@ type ImageEditorState = {
 };
 
 class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
+	contentOffset: ImageOffset;
+	maximumZoomScale: number;
+	minimumZoomScale: number;
+	scaledImageSize: ImageSize;
+	horizontal: boolean;
+	scrollView: ?any;
+	lastTapTime: ?number;
+
+	static propTypes = {
+		image: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
+		imageSize: PropTypes.shape({
+			width: PropTypes.number.isRequired,
+			height: PropTypes.number.isRequired,
+		}).isRequired,
+		size: PropTypes.shape({
+			width: PropTypes.number.isRequired,
+			height: PropTypes.number.isRequired,
+		}).isRequired,
+		onTransformDataChange: PropTypes.func,
+		style: View.propTypes.style,
+	};
+
 	constructor(props: ImageEditorProps) {
 		super(props);
 
@@ -34,14 +57,6 @@ class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
 			rotationAnimated: new Animated.Value(0),
 		};
 	}
-
-	contentOffset: ImageOffset;
-	maximumZoomScale: number;
-	minimumZoomScale: number;
-	scaledImageSize: ImageSize;
-	horizontal: boolean;
-	scrollView: ?any;
-	lastTapTime: ?number;
 
 	componentWillMount() {
 		// scale an image to the minimum size that is large enough to completely
@@ -108,33 +123,61 @@ class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
 		);
 	};
 
-	resetZoom() {
+	reset(animateZoom?: boolean, animateRotation?: boolean) {
+		this.resetZoom(animateZoom);
+		this.resetRotation(animateRotation);
+	}
+
+	resetZoom(animated?: boolean = true) {
 		this.scrollView &&
 			this.scrollView.scrollResponderZoomTo({
 				x: 0,
 				y: 0,
 				width: this.scaledImageSize.width,
 				height: this.scaledImageSize.height,
-				animated: true,
+				animated,
 			});
 	}
 
-	rotateImage() {
-		const newValue = this.state.rotation + 90;
+	resetRotation(animated?: boolean) {
+		this.rotateImage(0, animated);
+	}
 
-		Animated.timing(this.state.rotationAnimated, {
-			toValue: newValue,
-			duration: 225,
-			useNativeDriver: true,
-		}).start(() => {
-			this.setState({ rotation: newValue }, () => {
+	rotateImage(toValue?: number, animated?: boolean = true) {
+		let toValueIsValid = false;
+		let newValue = this.state.rotation + 90;
+
+		if (toValue || toValue === 0) {
+			if (Number.isInteger(toValue / 90)) {
+				newValue = toValue;
+				toValueIsValid = true;
+			}
+		}
+
+		const normalizedNewValue = ((newValue / 90) % 4) * 90;
+
+		const updateState = () => {
+			this.setState({ rotation: normalizedNewValue }, () => {
 				this.updateTransformData(
 					this.contentOffset,
 					this.scaledImageSize,
 					this.props.size
 				);
+				normalizedNewValue !== newValue &&
+					this.state.rotationAnimated.setValue(normalizedNewValue);
 			});
-		});
+		};
+
+		if (animated) {
+			Animated.timing(this.state.rotationAnimated, {
+				toValue: toValue && toValueIsValid ? normalizedNewValue : newValue,
+				duration: 225,
+				useNativeDriver: true,
+			}).start(updateState);
+		} else {
+			this.state.rotationAnimated.setValue(newValue);
+			updateState();
+		}
 	}
 
 	updateTransformData(
@@ -157,7 +200,10 @@ class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
 				width: this.props.imageSize.width * sizeRatioX,
 				height: this.props.imageSize.height * sizeRatioY,
 			},
-			rotation: rotation || this.state.rotation,
+			rotation:
+				rotation !== undefined && rotation !== null
+					? rotation
+					: this.state.rotation,
 		};
 
 		this.props.onTransformDataChange &&

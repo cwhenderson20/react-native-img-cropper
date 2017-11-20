@@ -1,5 +1,11 @@
 import * as React from "react";
-import { View, TouchableHighlight, Text, StatusBar } from "react-native";
+import {
+	View,
+	TouchableHighlight,
+	Text,
+	StatusBar,
+	StyleSheet,
+} from "react-native";
 import ImageCropper from "react-native-image-cropper";
 
 const photo1 = {
@@ -27,7 +33,7 @@ const photo2 = {
 // 		"https://static01.nyt.com/images/2017/11/16/opinion/16welch/16welch-master768.jpg",
 // };
 
-export default class Wrapper extends React.Component<*, *> {
+export default class App extends React.Component<*, *> {
 	constructor(props) {
 		super(props);
 
@@ -38,7 +44,7 @@ export default class Wrapper extends React.Component<*, *> {
 
 	render() {
 		return (
-			<View style={{ flex: 1 }}>
+			<View style={styles.fill}>
 				<StatusBar hidden={true} />
 				<ImageCropper
 					ref={i => (this.imageCropper = i)}
@@ -46,17 +52,17 @@ export default class Wrapper extends React.Component<*, *> {
 					onCropImage={(err, result) => console.log(result.uri)}
 				/>
 				<TouchableHighlight onPress={() => this.imageCropper.crop()}>
-					<View style={{ padding: 20, backgroundColor: "lightblue" }}>
+					<View style={[styles.button, styles.cropButton]}>
 						<Text>Crop</Text>
 					</View>
 				</TouchableHighlight>
 				<TouchableHighlight onPress={() => this.imageCropper.reset()}>
-					<View style={{ padding: 20, backgroundColor: "pink" }}>
+					<View style={[styles.button, styles.resetButton]}>
 						<Text>Reset</Text>
 					</View>
 				</TouchableHighlight>
 				<TouchableHighlight onPress={() => this.imageCropper.rotate()}>
-					<View style={{ padding: 20, backgroundColor: "lightgreen" }}>
+					<View style={[styles.button, styles.rotateButton]}>
 						<Text>Rotate</Text>
 					</View>
 				</TouchableHighlight>
@@ -67,7 +73,7 @@ export default class Wrapper extends React.Component<*, *> {
 						})
 					}
 				>
-					<View style={{ padding: 20, backgroundColor: "cyan" }}>
+					<View style={[styles.button, styles.switchButton]}>
 						<Text>Switch Photo</Text>
 					</View>
 				</TouchableHighlight>
@@ -75,3 +81,24 @@ export default class Wrapper extends React.Component<*, *> {
 		);
 	}
 }
+
+const styles = StyleSheet.create({
+	fill: {
+		flex: 1,
+	},
+	button: {
+		padding: 20,
+	},
+	switchButton: {
+		backgroundColor: "cyan",
+	},
+	rotateButton: {
+		backgroundColor: "lightgreen",
+	},
+	resetButton: {
+		backgroundColor: "pink",
+	},
+	cropButton: {
+		backgroundColor: "lightblue",
+	},
+});
