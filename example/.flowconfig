@@ -19,9 +19,6 @@
 ; Packages
 .*/node_modules/react-native-image-resizer/
 
-; Example
-.*/example
-
 [include]
 
 [libs]
