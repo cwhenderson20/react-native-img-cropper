@@ -1,7 +1,6 @@
 {
 	"name": "react-native-img-cropper",
 	"version": "0.0.1",
-	"private": true,
 	"scripts": {
 		"test": "eslint ."
 	},
