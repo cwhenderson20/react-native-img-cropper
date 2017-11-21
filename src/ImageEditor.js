@@ -34,6 +34,9 @@ class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
 	horizontal: boolean;
 	scrollView: ?any;
 	lastTapTime: ?number;
+	lastContentOffset: ImageOffset;
+	lastContentSize: ImageSize;
+	lastCropSize: ImageSize;
 
 	static propTypes = {
 		image: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
@@ -78,11 +81,15 @@ class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
 			};
 		}
 
+		this.lastContentSize = this.scaledImageSize;
+		this.lastCropSize = this.props.size;
+
 		// center the scaled image in the view
 		this.contentOffset = {
 			x: (this.scaledImageSize.width - this.props.size.width) / 2,
 			y: (this.scaledImageSize.height - this.props.size.height) / 2,
 		};
+		this.lastContentOffset = this.contentOffset;
 
 		// highest zoom level
 		this.maximumZoomScale = Math.min(
@@ -159,9 +166,10 @@ class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
 		const updateState = () => {
 			this.setState({ rotation: normalizedNewValue }, () => {
 				this.updateTransformData(
-					this.contentOffset,
-					this.scaledImageSize,
-					this.props.size
+					this.lastContentOffset,
+					this.lastContentSize,
+					this.lastCropSize,
+					normalizedNewValue
 				);
 				normalizedNewValue !== newValue &&
 					this.state.rotationAnimated.setValue(normalizedNewValue);
@@ -205,6 +213,10 @@ class ImageEditor extends React.Component<ImageEditorProps, ImageEditorState> {
 					? rotation
 					: this.state.rotation,
 		};
+
+		this.lastContentOffset = offset;
+		this.lastContentSize = scaledImageSize;
+		this.lastCropSize = croppedImageSize;
 
 		this.props.onTransformDataChange &&
 			this.props.onTransformDataChange(cropData);
