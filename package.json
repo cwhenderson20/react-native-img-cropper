@@ -5,6 +5,7 @@
 		"test": "eslint ."
 	},
 	"main": "./src/ImageCropper",
+	"files": ["src"],
 	"devDependencies": {
 		"@app-press/eslint-config": "^2.0.2",
 		"babel-eslint": "^8.0.2",
